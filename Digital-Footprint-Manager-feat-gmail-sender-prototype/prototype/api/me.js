@@ -1,9 +1,9 @@
-import state from "./_state.js";
+import store from "./_store.js";
 import { parseCookies } from "./_auth.js";
 
 export default function handler(req, res) {
   const sid = parseCookies(req).dfm_sid;
-  const session = sid ? state.sessions.get(sid) : null;
+  const session = sid ? store.sessions.get(sid) : null;
 
   if (!session) {
     res.json({ loggedIn: false });

@@ -14,6 +14,7 @@ const saveBtn = document.getElementById("save");
 const logoutBtn = document.getElementById("logout");
 
 let config = null;
+let rules = [];
 let lastSenders = [];
 let abortScan = null;
 let gmailAccessToken = null;
@@ -40,10 +41,10 @@ function renderSenders(senders) {
 function formatProgress(p) {
   const totalLabel = p.target ? String(p.target) : "?";
   if (p.phase === "listing") {
-    return `메일 ID 수집 중… ${p.scannedIds}${p.unlimited ? ` (전체 ~${totalLabel})` : ` / ${totalLabel}`}`;
+    return `메일 ID 수집 중 ${p.scannedIds}${p.unlimited ? ` (전체 ~${totalLabel})` : ` / ${totalLabel}`}`;
   }
   return [
-    `헤더 조회 중… ${p.fetched} / ${p.scannedIds || totalLabel}`,
+    `헤더 조회 중 ${p.fetched} / ${p.scannedIds || totalLabel}`,
     p.unlimited && p.target ? `전체 예상 ${p.target}` : null,
     `고유 발신자 ${p.uniqueSenders}`,
     p.errors ? `에러 ${p.errors}` : null,
@@ -77,6 +78,14 @@ async function refreshMe() {
   if (data.loggedIn) setLoggedInUI(data);
   else setLoggedOutUI();
   return data;
+}
+
+async function refreshHistory() {
+  const res = await fetch("/api/history");
+  const data = await res.json();
+  if (res.ok && Array.isArray(data.items) && data.items.length) {
+    meta.textContent = `${meta.textContent || ""} · history ${data.items.length}`;
+  }
 }
 
 async function handleCredentialResponse(response) {
@@ -154,7 +163,7 @@ function requestGmailToken() {
 scanBtn.addEventListener("click", async () => {
   err.textContent = "";
   meta.textContent = "";
-  progressEl.textContent = "Gmail 권한 요청 중…";
+  progressEl.textContent = "Gmail 권한 요청 중";
   rows.innerHTML = "";
   scanBtn.disabled = true;
   saveBtn.disabled = true;
@@ -164,7 +173,7 @@ scanBtn.addEventListener("click", async () => {
 
   try {
     gmailAccessToken = await requestGmailToken();
-    progressEl.textContent = "스캔 시작…";
+    progressEl.textContent = "스캔 시작";
 
     const result = await collectSenders(gmailAccessToken, {
       maxMessages: config.maxMessages,
@@ -183,6 +192,7 @@ scanBtn.addEventListener("click", async () => {
       `헤더 조회: ${result.fetched}`,
       `에러: ${result.errors}`,
       `고유 발신자: ${result.uniqueSenders}`,
+      `규칙: ${rules.length}`,
     ].join(" · ");
     renderSenders(result.senders);
   } catch (e) {
@@ -194,26 +204,16 @@ scanBtn.addEventListener("click", async () => {
 
 saveBtn.addEventListener("click", async () => {
   err.textContent = "";
-  const domainMap = new Map();
-  for (const s of lastSenders) {
-    const domain = s.domain || domainFromEmail(s.email);
-    if (!domain) continue;
-    domainMap.set(domain, (domainMap.get(domain) || 0) + s.count);
-  }
-  const domains = [...domainMap.entries()].map(([domain, count]) => ({
-    domain,
-    count,
-  }));
-
   try {
-    const res = await fetch("/api/candidates", {
+    const res = await fetch("/api/analyze", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ domains }),
+      body: JSON.stringify({ senders: lastSenders }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || res.statusText);
-    meta.textContent = `${meta.textContent || ""} · 서버 저장: 도메인 ${data.saved}개 (${data.savedAt})`;
+    meta.textContent = `${meta.textContent || ""} · analyzed domains ${data.totalDomains}`;
+    await refreshHistory();
   } catch (e) {
     err.textContent = String(e.message || e);
   }
@@ -238,9 +238,14 @@ async function boot() {
   config = await cfgRes.json();
   if (!cfgRes.ok) throw new Error(config.error || "config failed");
 
+  const ruleRes = await fetch("/api/rules");
+  const ruleData = await ruleRes.json();
+  rules = Array.isArray(ruleData.rules) ? ruleData.rules : [];
+
   await waitForGis();
   renderGoogleButton();
   await refreshMe();
+  await refreshHistory();
 }
 
 boot().catch((e) => {

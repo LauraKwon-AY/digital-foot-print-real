@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import state from "../_state.js";
+import store from "../_store.js";
 import { getClientId, getOauthClient, setSessionCookie } from "../_auth.js";
 
 export default async function handler(req, res) {
@@ -28,7 +28,7 @@ export default async function handler(req, res) {
     }
 
     const sid = crypto.randomUUID();
-    state.sessions.set(sid, {
+    store.sessions.set(sid, {
       sub: payload.sub,
       email: payload.email,
       name: payload.name || payload.email,

@@ -1,16 +1,16 @@
-import state from "./_state.js";
+import store from "./_store.js";
 import { parseCookies } from "./_auth.js";
 
 export default function handler(req, res) {
   const sid = parseCookies(req).dfm_sid;
-  const session = sid ? state.sessions.get(sid) : null;
+  const session = sid ? store.sessions.get(sid) : null;
   if (!session) {
     res.status(401).json({ error: "Login required" });
     return;
   }
 
   if (req.method === "GET") {
-    const record = state.savedCandidates.get(session.sub) || { domains: [], savedAt: null };
+    const record = store.savedCandidates?.get(session.sub) || { domains: [], savedAt: null };
     res.json(record);
     return;
   }
@@ -44,6 +44,7 @@ export default function handler(req, res) {
   }
 
   const record = { domains: cleaned, savedAt: new Date().toISOString() };
-  state.savedCandidates.set(session.sub, record);
+  if (!store.savedCandidates) store.savedCandidates = new Map();
+  store.savedCandidates.set(session.sub, record);
   res.json({ ok: true, saved: cleaned.length, savedAt: record.savedAt });
 }
