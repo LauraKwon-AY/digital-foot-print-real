@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DFM Gmail senders</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+      body {
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        max-width: 720px;
+        margin: 24px auto;
+        padding: 0 16px;
+        line-height: 1.4;
+      }
+      .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; }
+      button { padding: 8px 14px; cursor: pointer; }
+      button:disabled { opacity: 0.55; cursor: not-allowed; }
+      #meta, #status, #progress { color: #444; font-size: 14px; margin: 8px 0; }
+      #err { color: #b00020; white-space: pre-wrap; }
+      .panel { border: 1px solid #ddd; padding: 12px; margin: 12px 0; }
+      .hidden { display: none !important; }
+      table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+      th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #ddd; font-size: 14px; }
+      th { background: #f3f3f3; }
+      .note { font-size: 13px; color: #555; }
+    </style>
+  </head>
+  <body>
+    <h1>Gmail sender list</h1>
+    <p class="note">
+      This version keeps Gmail scanning in the browser and uses Vercel API functions only for login/session checks and saving approved domains.
+    </p>
+
+    <div id="loginPanel" class="panel">
+      <h2>1. Sign in</h2>
+      <p>Google 계정으로 로그인합니다. Gmail 내용은 서버로 보내지 않습니다.</p>
+      <div id="googleBtn"></div>
+      <div id="loginStatus"></div>
+    </div>
+
+    <div id="appPanel" class="panel hidden">
+      <h2>2. Scan Gmail</h2>
+      <div id="status"></div>
+      <div class="row">
+        <button id="scan" type="button">Scan senders</button>
+        <button id="save" type="button" disabled>Save domains</button>
+        <button id="logout" type="button">Logout</button>
+      </div>
+      <div id="progress"></div>
+      <div id="meta"></div>
+      <div id="err"></div>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Count</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+
+    <script type="module" src="/public/app.js"></script>
+  </body>
+</html>
